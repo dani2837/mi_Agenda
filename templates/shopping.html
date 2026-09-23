@@ -1,0 +1,59 @@
+{% extends "base.html" %}
+
+{% block title %}Lista compra{% endblock %}
+
+{% block content %}
+<section class="task-form-section">
+    <h2>Nuevo producto</h2>
+    <form class="task-form" action="/shopping" method="post">
+        <div class="field">
+            <label for="title">Producto</label>
+            <input id="title" name="title" type="text" maxlength="120" required placeholder="Ej. Leche">
+        </div>
+
+        <button class="primary-button" type="submit">Anadir producto</button>
+    </form>
+</section>
+
+<section class="task-list-section">
+    <div class="section-heading shopping-heading">
+        <h2>Lista compra</h2>
+
+        {% if items %}
+            <form action="/shopping/clear" method="post">
+                <button class="small-button danger clear-button" type="submit">Vaciar lista</button>
+            </form>
+        {% endif %}
+    </div>
+
+    {% if items %}
+        <div class="shopping-list">
+            {% for item in items %}
+                <article class="shopping-item {% if item.status == 'done' %}done{% endif %}">
+                    <form action="/shopping/{{ item.id }}/toggle" method="post">
+                        <button class="check-button" type="submit" aria-label="Cambiar estado">
+                            {% if item.status == "done" %}✓{% endif %}
+                        </button>
+                    </form>
+
+                    <div class="shopping-item-text">
+                        <h3>{{ item.title }}</h3>
+                        {% if item.status == "done" and item.completed_at %}
+                            <span>Marcado: {{ item.completed_at.replace("T", " ") }}</span>
+                        {% endif %}
+                    </div>
+
+                    <form action="/shopping/{{ item.id }}/delete" method="post">
+                        <button class="small-button danger" type="submit">Eliminar</button>
+                    </form>
+                </article>
+            {% endfor %}
+        </div>
+    {% else %}
+        <div class="empty-state">
+            <h3>Lista vacia</h3>
+            <p>Anade productos desde el formulario o con Telegram.</p>
+        </div>
+    {% endif %}
+</section>
+{% endblock %}

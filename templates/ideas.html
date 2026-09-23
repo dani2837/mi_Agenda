@@ -1,0 +1,87 @@
+{% extends "base.html" %}
+
+{% block title %}Ideas{% endblock %}
+
+{% block content %}
+<section class="task-form-section">
+    <h2>Añadir</h2>
+    <form class="task-form" action="/tasks" method="post">
+        <input type="hidden" name="item_type" value="idea">
+
+        <div class="field">
+            <label for="title">Idea</label>
+            <input id="title" name="title" type="text" maxlength="160" required placeholder="Ej. Preparar una automatización nueva">
+        </div>
+
+        <button class="primary-button" type="submit">Añadir idea</button>
+    </form>
+</section>
+
+<section class="task-list-section">
+    <div class="section-heading">
+        <h2>
+            {% if active_filter == "hechas" %}
+                Ideas hechas
+            {% else %}
+                Ideas pendientes
+            {% endif %}
+        </h2>
+
+        <nav class="filters" aria-label="Filtros de ideas">
+            <a class="{% if active_filter == 'pendientes' %}active{% endif %}" href="/ideas?filter=pendientes">Pendientes</a>
+            <a class="{% if active_filter == 'hechas' %}active{% endif %}" href="/ideas?filter=hechas">Hechas</a>
+        </nav>
+    </div>
+
+    {% if ideas %}
+        <div class="tasks ideas-list">
+            {% for idea in ideas %}
+                <article class="task-card idea-card {% if idea.status == 'done' %}done{% endif %}">
+                    <div class="task-main">
+                        <div class="task-content">
+                            <div class="task-title-row">
+                                <h3>{{ idea.title }}</h3>
+                            </div>
+
+                            {% if idea.status == "done" and idea.completed_at %}
+                                <div class="completed-banner">
+                                    <strong>HECHA</strong>
+                                    <span>{{ idea.completed_at.replace("T", " ") }}</span>
+                                </div>
+                            {% endif %}
+
+                            <div class="meta">
+                                <div class="meta-main">
+                                    <span>Creada: {{ idea.created_at.replace("T", " ") }}</span>
+                                </div>
+                                <span class="idea-status meta-status {% if idea.status == 'done' %}done{% endif %}">
+                                    {% if idea.status == "done" %}Hecha{% else %}Pendiente{% endif %}
+                                </span>
+                            </div>
+                        </div>
+
+                        <div class="actions">
+                            {% if idea.status != "done" %}
+                                <form action="/ideas/{{ idea.id }}/complete" method="post">
+                                    <input type="hidden" name="active_filter" value="{{ active_filter }}">
+                                    <button class="icon-action complete" type="submit" title="Marcar como hecha" aria-label="Marcar como hecha">✓</button>
+                                </form>
+                            {% endif %}
+
+                            <form action="/ideas/{{ idea.id }}/delete" method="post">
+                                <input type="hidden" name="active_filter" value="{{ active_filter }}">
+                                <button class="icon-action danger" type="submit" title="Eliminar idea" aria-label="Eliminar idea">X</button>
+                            </form>
+                        </div>
+                    </div>
+                </article>
+            {% endfor %}
+        </div>
+    {% else %}
+        <div class="empty-state">
+            <h3>No hay ideas aqui</h3>
+            <p>Añade una idea desde el formulario o con Telegram.</p>
+        </div>
+    {% endif %}
+</section>
+{% endblock %}

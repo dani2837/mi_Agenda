@@ -1,0 +1,227 @@
+{% extends "base.html" %}
+
+{% block title %}Mis tareas{% endblock %}
+
+{% block content %}
+{% macro task_card(task, active_filter) %}
+    <article class="task-card {% if task.status == 'done' %}done{% endif %} priority-{{ task.priority }}">
+        <div class="task-main">
+            <div class="task-content">
+                <div class="task-title-row">
+                    <h3>{{ task.title }}</h3>
+                </div>
+
+                {% if task.status == "done" and task.completed_at %}
+                    <div class="completed-banner">
+                        <strong>HECHA</strong>
+                        <span>{{ task.completed_at.replace("T", " ") }}</span>
+                    </div>
+                {% endif %}
+
+                {% if task.description %}
+                    <p class="description">{{ task.description }}</p>
+                {% endif %}
+
+                <div class="meta">
+                    <div class="meta-main">
+                        {% if task.due_date %}
+                            <span>Fecha: {{ task.due_date }}</span>
+                        {% else %}
+                            <span>Sin fecha</span>
+                        {% endif %}
+
+                        {% if task.due_time %}
+                            <span>Hora: {{ task.due_time }}</span>
+                        {% endif %}
+                    </div>
+
+                    <span class="priority meta-status">{{ task.priority }}</span>
+                </div>
+            </div>
+
+            <div class="actions">
+                {% if task.status != "done" %}
+                    <form action="/tasks/{{ task.id }}/complete" method="post">
+                        <button class="icon-action complete" type="submit" title="Marcar como hecha" aria-label="Marcar como hecha">✓</button>
+                    </form>
+                {% endif %}
+
+                <form action="/tasks/{{ task.id }}/delete" method="post">
+                    <button class="icon-action danger" type="submit" title="Eliminar tarea" aria-label="Eliminar tarea">X</button>
+                </form>
+
+                {% if task.status != "done" %}
+                    <div class="postpone-actions">
+                        <form action="/tasks/{{ task.id }}/postpone-day" method="post">
+                            <input type="hidden" name="active_filter" value="{{ active_filter }}">
+                            <button class="small-button postpone-quick" type="submit">Posponer</button>
+                        </form>
+                        <button class="small-button postpone-toggle" type="button" data-task-id="{{ task.id }}">Fecha</button>
+                    </div>
+                {% endif %}
+            </div>
+        </div>
+
+        {% if task.status != "done" %}
+            <form class="postpone-form" id="postpone-{{ task.id }}" action="/tasks/{{ task.id }}/postpone" method="post" hidden>
+                <input type="hidden" name="active_filter" value="{{ active_filter }}">
+                <label>
+                    Nueva fecha
+                    <input name="due_date" type="date" value="{{ task.due_date or '' }}">
+                </label>
+                <label>
+                    Nueva hora
+                    <input name="due_time" type="time" value="{{ task.due_time or '' }}">
+                </label>
+                <button class="small-button postpone-save" type="submit">Guardar fecha</button>
+            </form>
+        {% endif %}
+    </article>
+{% endmacro %}
+
+<section class="task-form-section">
+    <h2>Añadir</h2>
+    <form class="task-form" action="/tasks" method="post">
+        <div class="field">
+            <label for="item_type">Tipo</label>
+            <select id="item_type" name="item_type">
+                <option value="task">Tarea</option>
+                <option value="idea">Idea</option>
+            </select>
+        </div>
+
+        <div class="field">
+            <label id="title-label" for="title">Título</label>
+            <input id="title" name="title" type="text" maxlength="120" required placeholder="Ej. Revisar facturas">
+        </div>
+
+        <div class="field" data-task-only>
+            <label for="description">Descripción opcional</label>
+            <textarea id="description" name="description" rows="2" placeholder="Notas, contexto o pasos pendientes"></textarea>
+        </div>
+
+        <div class="form-grid" data-task-only>
+            <div class="field">
+                <label for="priority">Prioridad</label>
+                <select id="priority" name="priority">
+                    <option value="normal">Normal</option>
+                    <option value="urgente">Urgente</option>
+                </select>
+            </div>
+
+            <div class="field date-field">
+                <label for="due_date">Fecha</label>
+                <input id="due_date" name="due_date" type="date">
+            </div>
+
+            <div class="field time-field">
+                <label for="due_time">Hora</label>
+                <input id="due_time" name="due_time" type="time">
+            </div>
+        </div>
+
+        <button id="submit-label" class="primary-button" type="submit">Añadir tarea</button>
+    </form>
+</section>
+
+<section class="task-list-section">
+    <div class="section-heading">
+        <h2>
+            {% if active_filter == "hoy" %}
+                Hoy
+            {% elif active_filter == "urgentes" %}
+                Urgentes
+            {% elif active_filter == "vencidas" %}
+                Vencidas
+            {% elif active_filter == "hechas" %}
+                Hechas
+            {% else %}
+                Pendientes
+            {% endif %}
+        </h2>
+
+        <nav class="filters" aria-label="Filtros de tareas">
+            <a class="{% if active_filter == 'pendientes' %}active{% endif %}" href="/?filter=pendientes">Pendientes</a>
+            <a class="{% if active_filter == 'hoy' %}active{% endif %}" href="/?filter=hoy">Hoy</a>
+            <a class="{% if active_filter == 'urgentes' %}active{% endif %}" href="/?filter=urgentes">Urgentes</a>
+            <a class="{% if active_filter == 'vencidas' %}active{% endif %}" href="/?filter=vencidas">Vencidas</a>
+            <a class="{% if active_filter == 'hechas' %}active{% endif %}" href="/?filter=hechas">Hechas</a>
+        </nav>
+    </div>
+
+    {% if tasks %}
+        <div class="tasks">
+            {% if active_filter == "pendientes" %}
+                {% for section in task_sections %}
+                    <div class="date-section">
+                        <div class="date-heading {{ section.class }}">
+                            <span>{{ section.label }}</span>
+                            <small>{{ section.detail }}</small>
+                        </div>
+
+                        <div class="date-section-tasks">
+                            {% for task in section.tasks %}
+                                {{ task_card(task, active_filter) }}
+                            {% endfor %}
+                        </div>
+                    </div>
+                {% endfor %}
+            {% else %}
+                {% for task in tasks %}
+                    {{ task_card(task, active_filter) }}
+                {% endfor %}
+            {% endif %}
+        </div>
+    {% else %}
+        <div class="empty-state">
+            <h3>No hay tareas aquí</h3>
+            <p>Cambia de filtro o añade una tarea nueva.</p>
+        </div>
+    {% endif %}
+</section>
+{% endblock %}
+
+{% block scripts %}
+<script>
+    document.querySelectorAll(".postpone-toggle").forEach((button) => {
+        button.addEventListener("click", () => {
+            const form = document.getElementById(`postpone-${button.dataset.taskId}`);
+            if (!form) {
+                return;
+            }
+
+            form.hidden = !form.hidden;
+            button.textContent = form.hidden ? "Fecha" : "Cerrar";
+        });
+    });
+
+    const itemType = document.getElementById("item_type");
+    const titleLabel = document.getElementById("title-label");
+    const titleInput = document.getElementById("title");
+    const submitLabel = document.getElementById("submit-label");
+    const taskOnlyFields = document.querySelectorAll("[data-task-only]");
+
+    function updateAddForm() {
+        const isIdea = itemType && itemType.value === "idea";
+
+        taskOnlyFields.forEach((field) => {
+            field.hidden = isIdea;
+        });
+
+        if (titleLabel) {
+            titleLabel.textContent = isIdea ? "Idea" : "Título";
+        }
+        if (titleInput) {
+            titleInput.placeholder = isIdea ? "Ej. Probar una automatización nueva" : "Ej. Revisar facturas";
+        }
+        if (submitLabel) {
+            submitLabel.textContent = isIdea ? "Añadir idea" : "Añadir tarea";
+        }
+    }
+
+    if (itemType) {
+        itemType.addEventListener("change", updateAddForm);
+        updateAddForm();
+    }
+</script>
+{% endblock %}

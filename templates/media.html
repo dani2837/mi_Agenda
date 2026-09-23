@@ -1,0 +1,106 @@
+{% extends "base.html" %}
+
+{% block title %}{{ config.title }}{% endblock %}
+
+{% block content %}
+<section class="task-form-section">
+    <h2>Nuevo {{ config.singular|lower }}</h2>
+    <form class="task-form" action="/media/{{ section }}" method="post">
+        <div class="field">
+            <label for="name">{{ config.name_label }}</label>
+            <input id="name" name="name" type="text" maxlength="160" required placeholder="{{ config.name_placeholder }}">
+        </div>
+
+        {% for field in config.fields %}
+            <div class="field">
+                <label for="{{ field.name }}">{{ field.label }} opcional</label>
+                {% if field.type == "textarea" %}
+                    <textarea id="{{ field.name }}" name="{{ field.name }}" rows="3" placeholder="{{ field.placeholder }}"></textarea>
+                {% else %}
+                    <input id="{{ field.name }}" name="{{ field.name }}" type="text" maxlength="160" placeholder="{{ field.placeholder }}">
+                {% endif %}
+            </div>
+        {% endfor %}
+
+        <button class="primary-button" type="submit">Añadir {{ config.singular|lower }}</button>
+    </form>
+</section>
+
+<section class="task-list-section">
+    <div class="section-heading">
+        <h2>
+            {% if active_filter == "hechas" %}
+                {{ config.done_label }}
+            {% else %}
+                {{ config.pending_label }}
+            {% endif %}
+        </h2>
+
+        <nav class="filters" aria-label="Filtros de {{ config.title|lower }}">
+            <a class="{% if active_filter == 'pendientes' %}active{% endif %}" href="{{ config.path }}?filter=pendientes">{{ config.pending_label }}</a>
+            <a class="{% if active_filter == 'hechas' %}active{% endif %}" href="{{ config.path }}?filter=hechas">{{ config.done_label }}</a>
+        </nav>
+    </div>
+
+    {% if items %}
+        <div class="media-list">
+            {% for item in items %}
+                <article class="media-card {% if active_filter == 'hechas' %}done{% endif %}">
+                    <div class="media-content">
+                        <div class="task-title-row">
+                            <h3>{{ item.name }}</h3>
+                            <span class="idea-status {% if active_filter == 'hechas' %}done{% endif %}">
+                                {% if section == "books" and item.status == "downloaded" %}
+                                    Descargado
+                                {% elif active_filter == "hechas" %}
+                                    {{ config.done_action }}
+                                {% else %}
+                                    Pendiente
+                                {% endif %}
+                            </span>
+                        </div>
+
+                        {% if section == "books" and item.author %}
+                            <p class="media-meta-line">Autor: {{ item.author }}</p>
+                        {% endif %}
+
+                        {% if section == "series" and item.season %}
+                            <p class="media-meta-line">Temporada: {{ item.season }}</p>
+                        {% endif %}
+
+                        {% if section == "books" and item.description %}
+                            <p class="description">{{ item.description }}</p>
+                        {% elif item.comment %}
+                            <p class="description">{{ item.comment }}</p>
+                        {% endif %}
+
+                        {% if active_filter == "hechas" and item.completed_at %}
+                            <div class="completed-banner">
+                                <strong>{{ config.done_action|upper }}</strong>
+                                <span>{{ item.completed_at.replace("T", " ") }}</span>
+                            </div>
+                        {% endif %}
+                    </div>
+
+                    <div class="actions media-actions">
+                        <form action="/media/{{ section }}/{{ item.id }}/toggle" method="post">
+                            <input type="hidden" name="active_filter" value="{{ active_filter }}">
+                            <button class="icon-action complete" type="submit" title="{{ config.done_action }}" aria-label="{{ config.done_action }}">✓</button>
+                        </form>
+
+                        <form action="/media/{{ section }}/{{ item.id }}/delete" method="post">
+                            <input type="hidden" name="active_filter" value="{{ active_filter }}">
+                            <button class="icon-action danger" type="submit" title="Eliminar" aria-label="Eliminar">X</button>
+                        </form>
+                    </div>
+                </article>
+            {% endfor %}
+        </div>
+    {% else %}
+        <div class="empty-state">
+            <h3>No hay contenido aqui</h3>
+            <p>Añade un elemento desde el formulario o con Telegram.</p>
+        </div>
+    {% endif %}
+</section>
+{% endblock %}

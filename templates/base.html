@@ -1,0 +1,112 @@
+<!doctype html>
+<html lang="es">
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>{% block title %}Mi App de Tareas{% endblock %}</title>
+    <link rel="stylesheet" href="{{ url_for('static', path='styles.css') }}?v=20260629-task-actions-align">
+</head>
+<body>
+    <header class="topbar">
+        <div>
+            <p class="eyebrow">Gestor local</p>
+            <nav class="main-tabs" aria-label="Secciones principales">
+                <a class="{% if active_page == 'tasks' %}active{% endif %}" href="/">Tareas</a>
+                <a class="{% if active_page == 'ideas' %}active{% endif %}" href="/ideas">Ideas</a>
+                <a class="{% if active_page == 'shopping' %}active{% endif %}" href="/compra">Lista compra</a>
+                <a class="{% if active_page == 'books' %}active{% endif %}" href="/libros">Libros</a>
+                <a class="{% if active_page == 'series' %}active{% endif %}" href="/series">Series</a>
+                <a class="{% if active_page == 'movies' %}active{% endif %}" href="/peliculas">Peliculas</a>
+            </nav>
+        </div>
+        {% if active_page == "tasks" %}
+            <a class="today-link" href="/?filter=hoy">Hoy: {{ today_count }} pendientes</a>
+        {% elif active_page == "ideas" %}
+            <a class="today-link" href="/ideas">Ideas pendientes</a>
+        {% else %}
+            <a class="today-link" href="/">Volver a tareas</a>
+        {% endif %}
+    </header>
+
+    <main class="page">
+        {% block content %}{% endblock %}
+
+        <aside class="side-panel">
+            <section class="weather-panel">
+                <p class="eyebrow">Tiempo</p>
+                {% if weather and weather.ok %}
+                    <h2>{{ weather.city }}</h2>
+                    <div class="weather-temp">{{ weather.temperature }}&deg;</div>
+                    <p class="weather-desc">{{ weather.description }}</p>
+                    <dl class="weather-grid">
+                        <div>
+                            <dt>Sensacion</dt>
+                            <dd>{{ weather.apparent_temperature }}&deg;</dd>
+                        </div>
+                        <div>
+                            <dt>Max / Min</dt>
+                            <dd>{{ weather.max_temperature }}&deg; / {{ weather.min_temperature }}&deg;</dd>
+                        </div>
+                        <div>
+                            <dt>Lluvia</dt>
+                            <dd>{{ weather.rain_probability }}%</dd>
+                        </div>
+                        <div>
+                            <dt>Viento</dt>
+                            <dd>{{ weather.wind }} km/h</dd>
+                        </div>
+                        <div class="weather-next-day">
+                            <dt>Mañana</dt>
+                            <dd>
+                                {% if weather.tomorrow_max_temperature is not none and weather.tomorrow_min_temperature is not none %}
+                                    {{ weather.tomorrow_max_temperature }}&deg; / {{ weather.tomorrow_min_temperature }}&deg;
+                                {% else %}
+                                    --
+                                {% endif %}
+                            </dd>
+                        </div>
+                        <div class="weather-next-day">
+                            <dt>Pasado</dt>
+                            <dd>
+                                {% if weather.after_tomorrow_max_temperature is not none and weather.after_tomorrow_min_temperature is not none %}
+                                    {{ weather.after_tomorrow_max_temperature }}&deg; / {{ weather.after_tomorrow_min_temperature }}&deg;
+                                {% else %}
+                                    --
+                                {% endif %}
+                            </dd>
+                        </div>
+                    </dl>
+                {% else %}
+                    <h2>Tiempo</h2>
+                    <p class="weather-error">No se pudo consultar el tiempo.</p>
+                    {% if weather and weather.error %}
+                        <p class="weather-help">{{ weather.error }}</p>
+                    {% endif %}
+                {% endif %}
+            </section>
+
+            <section class="reminder-panel">
+                <p class="eyebrow">Recordatorio</p>
+                <p class="reminder-state {% if reminder and reminder.enabled %}enabled{% endif %}">
+                    {% if reminder and reminder.enabled %}
+                        Activo a las {{ reminder.time }}
+                    {% else %}
+                        Desactivado
+                    {% endif %}
+                </p>
+                <form action="/reminder/toggle" method="post">
+                    <input type="hidden" name="next_url" value="{{ request.url.path }}">
+                    <button class="reminder-button {% if reminder and reminder.enabled %}danger-mode{% endif %}" type="submit">
+                        {% if reminder and reminder.enabled %}
+                            Desactivar
+                        {% else %}
+                            Activar
+                        {% endif %}
+                    </button>
+                </form>
+            </section>
+        </aside>
+    </main>
+    {% block scripts %}{% endblock %}
+</body>
+</html>
